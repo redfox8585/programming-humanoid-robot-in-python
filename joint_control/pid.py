@@ -52,8 +52,23 @@ class PIDController(object):
         @param sensor: current values from sensor
         @return control signal
         '''
-        # YOUR CODE HERE
-
+        
+        self.y.append(sensor)
+        
+        error = target - sensor
+        #integral
+        self.e2 += error * self.dt
+        derivative = (error - self.e1)/self.dt        
+        
+        '''for i in range (len(self.u)):
+            self.u[i] = self.y[0]  + self.e1 * self.Kp * self.dt
+           ''' 
+            
+        self.u = self.e1 * self.Kp + self.e2 * self.Ki + derivative * self.Kd
+        
+        #previous error
+        self.e1 = error
+        
         return self.u
 
 
