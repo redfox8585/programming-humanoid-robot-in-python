@@ -53,11 +53,10 @@ class PIDController(object):
         @return control signal
         '''
         
-        self.y.append(sensor)
-        
         error = target - sensor
         
-        # with prediction
+        # with prediction - taking into account that the motor has moved since the measurement
+        self.y.append(self.u * self.dt)
         error += sum(self.y)
         
         # integral
@@ -69,10 +68,6 @@ class PIDController(object):
         
         # previous error
         self.e1 = error
-        
-        # with prediction
-        self.y.append(self.u * self.dt)
-        
         
         return self.u
 

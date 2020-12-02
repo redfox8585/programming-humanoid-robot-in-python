@@ -19,9 +19,9 @@
     # preceding the point, the second describes the curve following the point.
 '''
 
-
+import numpy as np
 from pid import PIDAgent
-from keyframes import hello
+from keyframes import rightBellyToStand
 
 
 class AngleInterpolationAgent(PIDAgent):
@@ -41,10 +41,25 @@ class AngleInterpolationAgent(PIDAgent):
     def angle_interpolation(self, keyframes, perception):
         target_joints = {}
         # YOUR CODE HERE
-
+        
+        
+        for i in range(0, len(keyframes[0])):
+            names = keyframes[0]
+            times = keyframes[1][i]
+            keys = []
+            
+            for k in keyframes[2][i]:
+                keys.append(k[0])
+            
+            angle = np.interp(np.mod(perception.time, 11.0) , times, keys)         
+            
+            
+            
+            target_joints[names[i]] = angle
+        
         return target_joints
 
 if __name__ == '__main__':
     agent = AngleInterpolationAgent()
-    agent.keyframes = hello()  # CHANGE DIFFERENT KEYFRAMES
+    agent.keyframes = rightBellyToStand.rightBellyToStand()  # CHANGE DIFFERENT KEYFRAMES
     agent.run()
