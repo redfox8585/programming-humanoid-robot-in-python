@@ -34,10 +34,10 @@ class PIDController(object):
         self.e1 = np.zeros(size)
         self.e2 = np.zeros(size)
         # ADJUST PARAMETERS BELOW
-        delay = 0
-        self.Kp = 17
+        delay = 1
+        self.Kp = 25
         self.Ki = 0.3
-        self.Kd = 0.2
+        self.Kd = 0.1
         self.y = deque(np.zeros(size), maxlen=delay + 1)
 
     def set_delay(self, delay):
@@ -53,22 +53,23 @@ class PIDController(object):
         @return control signal
         '''
         
-        error = target - sensor
+        # model of motor
+        # if delay == 0, then len(y) == 1 and angles - angles_delay == 0
+        angles = self.y[-1] + self.u * self.dt
+        self.y.append(angles)
+        angles_delay = self.y[0]
         
-        # with prediction - taking into account that the motor has moved since the measurement
-        self.y.append(self.u * self.dt)
-        error += sum(self.y)
+        # current error (feedback control with prediction)
+        e0 = target - (sensor + angles - angles_delay)
         
-        # integral
-        self.e2 += error * self.dt
-        derivative = (error - self.e1)/self.dt        
+        # Discrete PID-Controller
+        self.u += (self.Kp + self.Ki * self.dt + self.Kd / self.dt) * e0
+        self.u -= (self.Kp + 2 * self.Kd / self.dt) * self.e1
+        self.u += self.Kd / self.dt * self.e2
         
-        # speed    
-        self.u = self.e1 * self.Kp + self.e2 * self.Ki + derivative * self.Kd
-        
-        # previous error
-        self.e1 = error
-        
+        self.e2 = self.e1
+        self.e1 = e0
+       
         return self.u
 
 
