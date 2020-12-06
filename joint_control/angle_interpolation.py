@@ -22,7 +22,6 @@
 import numpy as np
 from pid import PIDAgent
 from keyframes import leftBackToStand
-from scipy.interpolate import splrep, splev
 
 class AngleInterpolationAgent(PIDAgent):
     def __init__(self, simspark_ip='localhost',
@@ -35,6 +34,7 @@ class AngleInterpolationAgent(PIDAgent):
         
         self.keyframe_offset_time = 0
         self.keyframe_start = 1
+        self.repeat_keyframe = 0
 
     def think(self, perception):
         target_joints = self.angle_interpolation(self.keyframes, perception)
@@ -43,6 +43,7 @@ class AngleInterpolationAgent(PIDAgent):
 
     def bezier_interpolation(self, time_point, times, keys):
         
+        # find part of bezier curve wich needs to be calculated
         t = np.zeros(4)
         a = np.zeros(4)
         
@@ -62,7 +63,9 @@ class AngleInterpolationAgent(PIDAgent):
         if t[0] > t[3]:
             return keys[-1][0]
             
-        i = np.linspace(0, 1, 100)
+        # increase steps if movement is not smooth enough
+        steps = 100
+        i = np.linspace(0, 1, steps)
         
         c1 = (1 - i)**3
         c2 = 3*(1-i)**2*i
@@ -75,9 +78,11 @@ class AngleInterpolationAgent(PIDAgent):
         a[1] += a[0]
         a[2] += a[3]
         
+        # time and value pairs (bez_x, bez_y) make bezier curve
         bez_x = c1* t[0] + c2 * t[1] + c3 * t[2] + c4 * t[3]
         bez_y = c1* a[0] + c2 * a[1] + c3 * a[2] + c4 * a[3]
         
+        # fill very small gaps between points calculated bezier curve
         angle = np.interp(time_point, bez_x, bez_y)
             
         return angle
@@ -105,7 +110,11 @@ class AngleInterpolationAgent(PIDAgent):
             t = perception.time - self.keyframe_offset_time
             if t < 0:
                 t = 0
-                   
+            
+            # repeat every 12s
+            if self.repeat_keyframe == 1:
+                t = np.mod(t, 12.0)
+            
             angle = self.bezier_interpolation(t, times, keys)         
             
             if name == "LHipYawPitch":
@@ -118,4 +127,5 @@ class AngleInterpolationAgent(PIDAgent):
 if __name__ == '__main__':
     agent = AngleInterpolationAgent()
     agent.keyframes = leftBackToStand.leftBackToStand()  # CHANGE DIFFERENT KEYFRAMES
+    agent.repeat_keyframe = 1
     agent.run()
