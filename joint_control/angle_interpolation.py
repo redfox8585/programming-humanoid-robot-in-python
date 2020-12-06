@@ -21,8 +21,8 @@
 
 import numpy as np
 from pid import PIDAgent
-from keyframes import rightBellyToStand
-
+from keyframes import leftBackToStand
+from scipy.interpolate import splrep, splev
 
 class AngleInterpolationAgent(PIDAgent):
     def __init__(self, simspark_ip='localhost',
@@ -32,34 +32,90 @@ class AngleInterpolationAgent(PIDAgent):
                  sync_mode=True):
         super(AngleInterpolationAgent, self).__init__(simspark_ip, simspark_port, teamname, player_id, sync_mode)
         self.keyframes = ([], [], [])
+        
+        self.keyframe_offset_time = 0
+        self.keyframe_start = 1
 
     def think(self, perception):
         target_joints = self.angle_interpolation(self.keyframes, perception)
         self.target_joints.update(target_joints)
         return super(AngleInterpolationAgent, self).think(perception)
 
+    def bezier_interpolation(self, time_point, times, keys):
+        
+        t = np.zeros(4)
+        a = np.zeros(4)
+        
+        for i in range(0, len(times)):
+            if times[i] < time_point:
+                t[0] = times[i]
+                t[1] = keys[i][2][1]
+                a[0] = keys[i][0]
+                a[1] = keys[i][2][2]
+            else:
+                t[2] = keys[i][1][1]
+                t[3] = times[i]
+                a[2] = keys[i][1][2]
+                a[3] = keys[i][0]
+                break
+            
+        if t[0] > t[3]:
+            return keys[-1][0]
+            
+        i = np.linspace(0, 1, 100)
+        
+        c1 = (1 - i)**3
+        c2 = 3*(1-i)**2*i
+        c3 = 3*(1-i)*i**2
+        c4 = i**3
+        
+        
+        t[1] += t[0]
+        t[2] += t[3]
+        a[1] += a[0]
+        a[2] += a[3]
+        
+        bez_x = c1* t[0] + c2 * t[1] + c3 * t[2] + c4 * t[3]
+        bez_y = c1* a[0] + c2 * a[1] + c3 * a[2] + c4 * a[3]
+        
+        angle = np.interp(time_point, bez_x, bez_y)
+            
+        return angle
+
     def angle_interpolation(self, keyframes, perception):
         target_joints = {}
         # YOUR CODE HERE
         
         
+        
+        if keyframes == ([], [], []) or self.keyframe_start == 0:
+            return  target_joints
+        
+        # for every joint
         for i in range(0, len(keyframes[0])):
-            names = keyframes[0]
+            name = keyframes[0][i]
             times = keyframes[1][i]
-            keys = []
+            keys = keyframes[2][i]
+            points = []
             
-            for k in keyframes[2][i]:
-                keys.append(k[0])
+            # simplify keys
+            for k in keys:
+                points.append(k[0])
             
-            angle = np.interp(np.mod(perception.time, 11.0) , times, keys)         
+            t = perception.time - self.keyframe_offset_time
+            if t < 0:
+                t = 0
+                   
+            angle = self.bezier_interpolation(t, times, keys)         
             
-            
-            
-            target_joints[names[i]] = angle
+            if name == "LHipYawPitch":
+                target_joints["RHipYawPitch"] = angle
+                
+            target_joints[name] = angle
         
         return target_joints
 
 if __name__ == '__main__':
     agent = AngleInterpolationAgent()
-    agent.keyframes = rightBellyToStand.rightBellyToStand()  # CHANGE DIFFERENT KEYFRAMES
+    agent.keyframes = leftBackToStand.leftBackToStand()  # CHANGE DIFFERENT KEYFRAMES
     agent.run()
