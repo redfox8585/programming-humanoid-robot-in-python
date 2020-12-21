@@ -25,17 +25,16 @@ class InverseKinematicsAgent(ForwardKinematicsAgent):
         for joint in self.chains[leg_name]:
             angle = joints[joint]
             Tl = self.local_trans(joint, angle)
-            # YOUR CODE HERE
+            
             T = T.dot(Tl)
 
         return T
         
     
-    def error_func(self, angles, target, joint_names) : 
+    def error_func(self, angles, target, effector_name) : 
         
+        joint_names = self.chains[effector_name]
         joints = {}
-        
-       
         for i in range(0, len(joint_names)):
             joints[joint_names[i]] = angles[i]
             i += 1
@@ -60,22 +59,22 @@ class InverseKinematicsAgent(ForwardKinematicsAgent):
         
         # using the numerical approach with autograd
         # to improve accuracy decrease max_error and increase max_iterations below
-        max_error = 0.001
-        max_iterations = 30
-        speed = 0.01
+        max_error = 0.01
+        max_iterations = 300
+        speed = 0.1
         
         
         # calculate symbolic gradient function with autograd for a fixed goal transform
-        error_func2 = lambda angles: self.error_func(angles, transform, self.chains[effector_name])
+        error_func2 = lambda angles: self.error_func(angles, transform, effector_name)
         symGradFunc = grad(error_func2)
         
         joint_angles = np.array([0.0,0.0,0.0,0.0,0.0,0.0])
         
         for i in range(0, max_iterations):
             joint_angles -= symGradFunc(joint_angles) * speed
-            #error = error_func2(joint_angles)
-            #if error < max_error:
-            #    break
+            error = error_func2(joint_angles)
+            if error < max_error:
+                break
         
         return joint_angles
 
@@ -118,7 +117,7 @@ if __name__ == '__main__':
     T = agent.leg_forward_kinematics({'LHipYawPitch': 0.0,
                                   'LHipRoll' : 0.0,
                                   'LHipPitch' : 0.0,
-                                  'LKneePitch': 0.1,
+                                  'LKneePitch': 0.001,
                                   'LAnklePitch': 0.0,
                                   'LAnkleRoll': 0.0
                                   }, 'LLeg')

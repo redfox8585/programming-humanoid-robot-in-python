@@ -24,45 +24,6 @@ from autograd.numpy import matrix, identity, sin, cos, pi
 
 from angle_interpolation import AngleInterpolationAgent
 
-from mpl_toolkits import mplot3d
-import matplotlib.pyplot as plt
-
-'''
-change this parameter for 2D output
-'''
-plotIn3D = True
-
-if plotIn3D :
-    ax = plt.axes(projection='3d')
-
-
-# point and vector structure [[x],[y], [...]]
-def plotVector(point, direction, color):
-    if plotIn3D :
-        ax.plot3D([point[0,0], direction[0,0]+point[0,0]],
-              [point[1,0], direction[1,0]+point[1,0]],
-              [point[2,0], direction[2,0]+point[2,0]],
-              color)
-    else:
-        plt.plot([point[0,0], direction[0,0]+point[0,0]], [point[1,0], direction[1,0]+point[1,0]], color=color)
-
-
-"""
-coo is a standard transform matrix
-coo is a 4x4 matrix. columns represent: {x-vector, y-vector, z-vector, point of origin}
-a point is represented by (x,y,z,1) and a vector by (x,y,z,0)
-
-size is a scaling factor for coordinate axes
-"""
-def plotCoordinateSystem(coo, size = 1):
-    x = coo[:,0]
-    y = coo[:,1]
-    z = coo[:,2]
-    origin = coo[:,3]
-    
-    plotVector(origin, x * size, 'r')
-    plotVector(origin, y * size, 'g')
-    plotVector(origin, z * size, 'b')
 
 class ForwardKinematicsAgent(AngleInterpolationAgent):
     def __init__(self, simspark_ip='localhost',
@@ -219,57 +180,6 @@ class ForwardKinematicsAgent(AngleInterpolationAgent):
                 T = T.dot(Tl)
 
                 self.transforms[joint] = T
-
-               
-        # plotting the result
-        
-        # show y coordinate on x axis and z coordinate on y axis
-        view_transform = matrix([[0, 1, 0, 0],
-                                 [-1, 0, 0, 0],
-                                 [0, 0, 1, 0],
-                                 [0, 0, 0, 1]])
-        
-        self.plotSkeleton(view_transform)
-        self.plotRobot(view_transform)
-        plt.show()
-        
-        
-    def plotJoints(self, names, view_transform = identity(4)):
-        for joint in names:
-            plotCoordinateSystem(view_transform.dot(self.transforms[joint]), 50)
-    
-    def plotSkeleton(self, view_transform = identity(4)):
-        for chain_joints in self.chains.values():
-            points_x = [0]
-            points_y = [0]
-            points_z = [0]
-            for joint in chain_joints:
-                T = view_transform.dot(self.transforms[joint])
-                points_x.append(T[0,3])
-                points_y.append(T[1,3])
-                points_z.append(T[2,3])
-        
-            if plotIn3D :
-                ax.plot3D(points_x, points_y, points_z)
-            else:
-                plt.plot(points_x, points_y)
-                        
-    def plotRobot(self, view_transform = identity(4)):
-        # origin / torso
-        plotCoordinateSystem(view_transform, 50)
-        
-        for chain_joints in self.chains.values():
-             for joint in chain_joints:
-                 plotCoordinateSystem(view_transform.dot(self.transforms[joint]), 50)
-                 
-    def plotLLeg(self, view_transform = identity(4)):
-        # origin / torso
-        plotCoordinateSystem(view_transform, 50)
-        
-        
-        for joint in self.chains['LLeg']:
-            plotCoordinateSystem(view_transform.dot(self.transforms[joint]), 50)
-
 
 if __name__ == '__main__':
     agent = ForwardKinematicsAgent()
