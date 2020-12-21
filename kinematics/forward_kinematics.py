@@ -20,7 +20,7 @@ import os
 import sys
 sys.path.append(os.path.join(os.path.abspath(os.path.dirname(__file__)), '..', 'joint_control'))
 
-from numpy.matlib import matrix, identity, sin, cos, pi
+from autograd.numpy import matrix, identity, sin, cos, pi
 
 from angle_interpolation import AngleInterpolationAgent
 
@@ -76,10 +76,9 @@ class ForwardKinematicsAgent(AngleInterpolationAgent):
         # chains defines the name of chain and joints of the chain
         self.chains = {'Head': ['HeadYaw', 'HeadPitch'],
                        'LArm': ['LShoulderPitch', 'LShoulderRoll', 'LElbowYaw', 'LElbowRoll'],
-                       'LLeg': ['LHipYawPitch', 'LHipRoll', 'LHipPitch', 'LKneePitch', 'LAnklePitch', 'RAnkleRoll'],
-                       'RLeg': ['RHipYawPitch', 'RHipRoll', 'RHipPitch', 'RKneePitch', 'RAnklePitch', 'LAnkleRoll'],
-                       'RArm': ['RShoulderPitch', 'RShoulderRoll', 'RElbowYaw', 'RElbowRoll'],
-                       #'Body': ['Head', 'LArm', 'LLeg', 'RLeg', 'RArm']
+                       'LLeg': ['LHipYawPitch', 'LHipRoll', 'LHipPitch', 'LKneePitch', 'LAnklePitch', 'LAnkleRoll'],
+                       'RLeg': ['RHipYawPitch', 'RHipRoll', 'RHipPitch', 'RKneePitch', 'RAnklePitch', 'RAnkleRoll'],
+                       'RArm': ['RShoulderPitch', 'RShoulderRoll', 'RElbowYaw', 'RElbowRoll']
                        }
 
     def think(self, perception):
@@ -87,32 +86,23 @@ class ForwardKinematicsAgent(AngleInterpolationAgent):
         return super(ForwardKinematicsAgent, self).think(perception)
 
     def rotX(self, angle):
-        T = identity(4)
-        T[1,1] = cos(angle)
-        T[1,2] = -sin(angle)
-        T[2,1] = sin(angle)
-        T[2,2] = cos(angle)
-        
-        return T
+        return matrix([[1,0,0,0],
+                       [0,cos(angle),-sin(angle),0],
+                       [0,sin(angle),cos(angle),0],
+                       [0,0,0,1]])
     
     def rotY(self, angle):
-        T = identity(4)
-        T[0,0] = cos(angle)
-        T[0,2] = sin(angle)
-        T[2,0] = -sin(angle)
-        T[2,2] = cos(angle)
-        
-        return T
+        return matrix([[cos(angle),0,sin(angle),0],
+                       [0,1,0,0],
+                       [-sin(angle),0,cos(angle),0],
+                       [0,0,0,1]])
     
     def rotZ(self, angle):
-        T = identity(4)
-        T[0,0] = cos(angle)
-        T[0,1] = -sin(angle)
-        T[1,0] = sin(angle)
-        T[1,1] = cos(angle)
-        
-        return T
-    
+        return matrix([[cos(angle),-sin(angle),0,0],
+                       [sin(angle),cos(angle),0,0],
+                       [0,0,1,0],
+                       [0,0,0,1]])
+
     def translation(self, x, y, z):
         return matrix([[1,0,0,x],
                        [0,1,0,y],
@@ -143,11 +133,11 @@ class ForwardKinematicsAgent(AngleInterpolationAgent):
                    'HeadPitch':      [0, 0, 0],
                    'LShoulderPitch': [0, 98, 100],
                    'LShoulderRoll':  [0, 0, 0],
-                   'LElbowYaw':      [0, 15, -105],
+                   'LElbowYaw':      [105, 15, 0],
                    'LElbowRoll':     [0, 0, 0],
                    'RShoulderPitch': [0, -98, 100],
                    'RShoulderRoll':  [0, 0, 0],
-                   'RElbowYaw':      [0, 15, -105],
+                   'RElbowYaw':      [105, -15, 0],
                    'RElbowRoll':     [0, 0, 0],
                    'LHipYawPitch':   [0, 50, -85],
                    'LHipRoll':       [0, 0, 0],
@@ -163,77 +153,62 @@ class ForwardKinematicsAgent(AngleInterpolationAgent):
                    'RAnkleRoll':     [0, 0, 0]
                    }
         
-        for chain_joints in self.chains.values():
-            for joint in chain_joints:
-                offset = trans_offsets[joint]
-                trans_offsets[joint] = self.translation(offset[0], offset[1], offset[2])
-        
-        # rotational offsets
-        rot_offsets = {}
-        for chain_joints in self.chains.values():
-            for joint in chain_joints:
-                 rot_offsets[joint] = identity(4)
-                 
-        rot_offsets['LShoulderRoll'] = self.rotY(-pi/2)
-                 
-        rot_offsets['RShoulderRoll'] = matrix([[1,0,0,0],
-                                              [0,-1,0,0],
-                                              [0,0,1,0],
-                                              [0,0,0,1]]).dot(self.rotY(-pi/2))
-    
-        rot_offsets['LHipYawPitch'] = self.rotX(pi/4)
-    
-        rot_offsets['RHipYawPitch'] = matrix([[1,0,0,0],
-                                             [0,-1,0,0],
-                                             [0,0,1,0],
-                                             [0,0,0,1]]).dot(self.rotX(pi/4))
-    
-        rot_offsets['LHipRoll'] = self.rotX(-pi/4)
-        rot_offsets['RHipRoll'] = self.rotX(-pi/4)
-                
-        
-        rot_axis = {'HeadYaw':       'z',
-                   'HeadPitch':      'y',
-                   'LShoulderPitch': 'y',
-                   'LShoulderRoll':  'x',
-                   'LElbowYaw':      'z',
-                   'LElbowRoll':     'x',
-                   'RShoulderPitch': 'y',
-                   'RShoulderRoll':  'x',
-                   'RElbowYaw':      'z',
-                   'RElbowRoll':     'x',
-                   'RWristYaw':      'z',
-                   'LHipYawPitch':   'y',
-                   'LHipRoll':       'x',
-                   'LHipPitch':      'y',
-                   'LKneePitch':     'y',
-                   'LAnklePitch':    'y',
-                   'LAnkleRoll':     'x',
-                   'RHipYawPitch':   'y',
-                   'RHipRoll':       'x',
-                   'RHipPitch':      'y',
-                   'RKneePitch':     'y',
-                   'RAnklePitch':    'y',
-                   'RAnkleRoll':     'x'
+        # first array parameter is the rotation axis and second parameter is a factor for rotation direction (CW vs. CCW)
+        rot_axis_counterClockwiseFactor = {
+                   'HeadYaw':        ['z', 1],
+                   'HeadPitch':      ['y', 1],
+                   'LShoulderPitch': ['y', 1],
+                   'LShoulderRoll':  ['z', 1],
+                   'LElbowYaw':      ['y', 1],
+                   'LElbowRoll':     ['z', 1],
+                   'RShoulderPitch': ['y', 1],
+                   'RShoulderRoll':  ['z', 1],
+                   'RElbowYaw':      ['x', 1],
+                   'RElbowRoll':     ['z', 1],
+                   'LHipYawPitch':   ['z', -1],
+                   'LHipRoll':       ['x', 1],
+                   'LHipPitch':      ['y', 1],
+                   'LKneePitch':     ['y', 1],
+                   'LAnklePitch':    ['y', 1],
+                   'LAnkleRoll':     ['x', 1],
+                   'RHipYawPitch':   ['z', 1],
+                   'RHipRoll':       ['x', 1],
+                   'RHipPitch':      ['y', 1],
+                   'RKneePitch':     ['y', 1],
+                   'RAnklePitch':    ['y', 1],
+                   'RAnkleRoll':     ['x', 1]
                    }
+    
+        # translational part
+        o = trans_offsets[joint_name]
+        T = self.translation(o[0], o[1], o[2])
+    
+        # special joint orientations
+        if joint_name == "LHipYawPitch":
+            T = T.dot(self.rotation('x', pi/4))
+            
+        if joint_name == "RHipYawPitch":
+            T = T.dot(self.rotation('x', -pi/4))
         
-        # rotational offset combined with translational offset
-        T = trans_offsets[joint_name].dot(rot_offsets[joint_name])
-
+        if joint_name == "LHipRoll":
+            T = T.dot(self.rotation('x', -pi/4))
+        
+        if joint_name == "RHipRoll":
+            T = T.dot(self.rotation('x', pi/4))
+        
+    
+        # rotate joint / add rotational part
+        r = rot_axis_counterClockwiseFactor[joint_name]
+        T = T.dot(self.rotation(r[0], joint_angle * r[1]))
+    
         # joint rotation
-        return T.dot(self.rotation(rot_axis[joint_name], joint_angle))
+        return T
 
     def forward_kinematics(self, joints):
         '''forward kinematics
 
         :param joints: {joint_name: joint_angle}
         '''
-        test_joints = {}
-        for chain_joints in self.chains.values():
-            for joint in chain_joints:
-                test_joints[joint] = 0.0
-                
-        joints = test_joints
         
         for chain_joints in self.chains.values():
             T = identity(4)
@@ -244,10 +219,9 @@ class ForwardKinematicsAgent(AngleInterpolationAgent):
                 T = T.dot(Tl)
 
                 self.transforms[joint] = T
-        
+
+               
         # plotting the result
-        
-        names = self.chains['Head']
         
         # show y coordinate on x axis and z coordinate on y axis
         view_transform = matrix([[0, 1, 0, 0],
@@ -258,6 +232,7 @@ class ForwardKinematicsAgent(AngleInterpolationAgent):
         self.plotSkeleton(view_transform)
         self.plotRobot(view_transform)
         plt.show()
+        
         
     def plotJoints(self, names, view_transform = identity(4)):
         for joint in names:
@@ -286,6 +261,14 @@ class ForwardKinematicsAgent(AngleInterpolationAgent):
         for chain_joints in self.chains.values():
              for joint in chain_joints:
                  plotCoordinateSystem(view_transform.dot(self.transforms[joint]), 50)
+                 
+    def plotLLeg(self, view_transform = identity(4)):
+        # origin / torso
+        plotCoordinateSystem(view_transform, 50)
+        
+        
+        for joint in self.chains['LLeg']:
+            plotCoordinateSystem(view_transform.dot(self.transforms[joint]), 50)
 
 
 if __name__ == '__main__':
