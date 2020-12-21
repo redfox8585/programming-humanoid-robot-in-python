@@ -39,7 +39,7 @@ class InverseKinematicsAgent(ForwardKinematicsAgent):
             joints[joint_names[i]] = angles[i]
             i += 1
         
-        current = self.leg_forward_kinematics(joints, 'LLeg')
+        current = self.leg_forward_kinematics(joints, effector_name)
         error = target - current
         
         res = np.sum(error*error)
