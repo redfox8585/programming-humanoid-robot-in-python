@@ -24,6 +24,12 @@ class InverseKinematicsAgent(ForwardKinematicsAgent):
         '''
         joint_angles = []
         # YOUR CODE HERE
+        
+        if effector_name == "Head":
+            transform
+        
+        
+        
         return joint_angles
 
     def set_transforms(self, effector_name, transform):
