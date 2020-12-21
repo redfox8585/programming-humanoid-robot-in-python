@@ -46,6 +46,16 @@ class InverseKinematicsAgent(ForwardKinematicsAgent):
                 
         return res
     
+    
+    def normalizeAngles(self, angle):
+        while angle > np.pi:
+            angle -= 2.0 * np.pi
+        
+        while angle < -np.pi:
+            angle += 2.0*np.pi
+            
+        return angle
+    
     def inverse_kinematics(self, effector_name, transform):
         '''solve the inverse kinematics
 
@@ -68,15 +78,23 @@ class InverseKinematicsAgent(ForwardKinematicsAgent):
         error_func2 = lambda angles: self.error_func(angles, transform, effector_name)
         symGradFunc = grad(error_func2)
         
-        joint_angles = np.array([0.0,0.0,0.0,0.0,0.0,0.0])
+        joint_angles = np.array([0.1,0.1,0.1,0.1,0.1,0.1])
         
         for i in range(0, max_iterations):
+            
+            for i in range(0, len(joint_angles)):
+                joint_angles[i] = self.normalizeAngles(joint_angles[i])
+            
             joint_angles -= symGradFunc(joint_angles) * speed
             error = error_func2(joint_angles)
             if error < max_error:
                 break
+            
         
+            
         return joint_angles
+
+    
 
     def set_transforms(self, effector_name, transform):
         '''solve the inverse kinematics and control joints use the results

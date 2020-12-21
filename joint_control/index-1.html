@@ -1,0 +1,42 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"/><title>Unbekannt </title></head><body>
+<h1 id="3-joint-control">3: Joint Control</h1>
+<h2 id="pid-controller-for-joint-servo">PID Controller for Joint Servo</h2>
+<ol>
+<li>complete the implementation of PID controller in <a href="./pid.py">pid.py</a></li>
+<li>use <a href="./pid_test.ipynb">pid_test.ipynb</a> to tuning PID parameters<ul>
+<li>start <code>jupyter notebook</code> in this folder, then you can launch <a href="./pid_test.ipynb">pid_test.ipynb</a> in your web browser</li>
+<li>follow instruction in notebook, run the code and tune PID parameters</li>
+</ul>
+</li>
+<li>save the best parameters in <code>__init__</code> of <code>class PIDController</code></li>
+</ol>
+<h2 id="keyframe-motion">Keyframe Motion</h2>
+<ol>
+<li>implement angle interploation method by using splins interpolation or Bezier interpolation in file <a href="./angle_interpolation.py">angle_interpolation.py</a>, please follow instruction in the comments of the file.<ul>
+<li>run simspark and <a href="./angle_interpolation.py">angle_interpolation.py</a> to test <a href="./keyframes/hello.py">hello</a> motion</li>
+</ul>
+</li>
+<li>test your implementation with provided keyframes in <a href="./keyframes">keyframes</a> folderï¼Œ for example:<ul>
+<li>import keyframe with <code>from keyframes import hello</code></li>
+<li>and set the keyframe in <code>main</code> function, e.g. <code>agent.keyframes = hello()</code></li>
+<li>Note: the provided keyframes doesn't have joint <code>RHipYawPitch</code>, please set <code>RHipYawPitch</code> as <code>LHipYawPitch</code> which reflects the real robot.</li>
+</ul>
+</li>
+<li>(optional) create your own keyframes</li>
+</ol>
+<h2 id="posture-recognition">Posture Recognition</h2>
+<p>use machine learning to recognize robot's posture <a href="./learn_posture.ipynb">learn_posture.ipynb</a>, the <a href="./scikit-learn-intro.ipynb">scikit-learn-intro.ipynb</a> is a good example to follow.</p>
+<ol>
+<li>preparing dataset (step 1~2 in <a href="./learn_posture.ipynb">learn_posture.ipynb</a> )</li>
+<li>traning dataset, and save the results (step 3~5 in <a href="./learn_posture.ipynb">learn_posture.ipynb</a> )</li>
+<li>getting feature data from simulation and recognize current posture in <a href="./recognize_posture.py">recognize_posture.py</a></li>
+<li>if the result is not good in simulation, adding new train data with <a href="add_training_data.ipynb">add_training_data.ipynb</a></li>
+<li>commit file <em>robot_pose.pkl</em> as trained result to git before submission.</li>
+</ol>
+<h3 id="automonous-standing-up">Automonous standing up</h3>
+<ol>
+<li>complete the <a href="./standing_up.py">standing_up.py</a>, e.g. call keyframe motion corresponds to current posture</li>
+<li>Test with the <code>TestStandingUpAgent</code> which turns off all joints regularly to make the robot falls</li>
+<li>(optional) The <code>TestStandingUpAgent</code> always falls to belly, please also test other suitations: e.g. execute a keyframe motion to make robot falls to another pose and let it stands up.</li>
+</ol>
+</body></html>
