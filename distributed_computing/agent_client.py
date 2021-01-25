@@ -10,6 +10,7 @@ import weakref
 import xmlrpc.client
 from threading import Thread
 from keyframes import hello
+import time
 
 class PostHandler(object):
     '''the post hander wraps function to be excuted in paralle
@@ -94,9 +95,13 @@ if __name__ == '__main__':
     agent.set_angle("LShoulderPitch", 0.4)
     print(agent.get_posture())
 
-    agent.execute_keyframes(hello.hello())
+
     agent.post.execute_keyframes(hello.hello())
+    print("doing something else ...")
     
-    print(agent.get_transform("LShoulderPitch"))
+    agent.execute_keyframes(hello.hello())
+    
+    
+    agent.get_transform("LShoulderPitch")
     
     

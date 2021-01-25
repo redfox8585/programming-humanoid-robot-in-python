@@ -106,6 +106,7 @@ class ServerAgent(InverseKinematicsAgent):
 
         # if keyframe not finished        
         if self.tmpPerception.time <= self.keyframe_offset_time + 12.0:
+            self.mutex.release()
             return 0
         
         self.keyframes = keyframes
